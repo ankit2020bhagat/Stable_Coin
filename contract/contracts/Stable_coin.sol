@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.18;
+pragma solidity ^0.8.18;
 
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-contract Stablecoin is ERC20Burnable {
+contract Stablecoin is ERC20{
 
+    using SafeMath for uint256;
     error MustBeGreaterThanZero();
-    error InsufficiernBalance();
+    error TokenBalanceShouldBeDouble();
     error TrasanctionFailed();
      
     event Deposit(address indexed from,uint indexed Colletal,uint indexed  token);
     event Redeem(address  indexed to, uint indexed ethamount,uint nusdAmount);
 
 
-
+    
     address private oracleAddress; // Chainlink Oracle address
     uint8 public immutable depositFeePercentage;
     mapping(address => uint256) private ethBalances; // User ETH balances
@@ -33,14 +35,15 @@ contract Stablecoin is ERC20Burnable {
              revert MustBeGreaterThanZero(); 
          }
         uint256 ETHperUSD = getEthPrice();
-        uint colletalValue= (ETHperUSD/1e18)*msg.value;
-     
+        uint256 colletalValue= (ETHperUSD.mul(msg.value)).div(1e18);
+      
         
-        uint256 nusdAmount = colletalValue / 2; // 50% conversion rate
-        
+        uint256 nusdAmount = colletalValue.div(2); // 50% conversion rate
+      
         // Apply deposit fee
-        uint256 depositFee = (nusdAmount * depositFeePercentage) / 100;
+        uint256 depositFee = (nusdAmount.mul(depositFeePercentage)).div(100);
         nusdAmount -= depositFee;
+        
         
         ethBalances[msg.sender] += colletalValue;
         nusdBalances[msg.sender] += nusdAmount;
@@ -55,14 +58,14 @@ contract Stablecoin is ERC20Burnable {
             revert MustBeGreaterThanZero();
         }
         if(nusdBalances[msg.sender]< nusdAmount*2){
-            revert InsufficiernBalance();
+            revert TokenBalanceShouldBeDouble();
         }
-        uint ethAmount = nusdBalances[msg.sender]/getEthPrice();
+        uint256 Ether = 1e18;
+        uint256 ethAmount = (Ether.mul(nusdAmount)).div(getEthPrice());
         
         nusdBalances[msg.sender] -= nusdAmount;
         _burn(msg.sender, nusdAmount);
         
-        payable(msg.sender).transfer(ethAmount);
         (bool success,) = msg.sender.call{value:ethAmount}("");
         if(!success){
             revert TrasanctionFailed();

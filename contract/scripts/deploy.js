@@ -1,18 +1,23 @@
 const hre = require("hardhat");
-const { oracleAddress } = require("../helper-config/ORACLEADDRESSS");
+const { ORACLEADDRESS } = require("../helper-config");
+const { verify } = require("../utils/verify");
 async function main() {
-  console.log(oracleAddress);
+  const dataFeed = await hre.ethers.deployContract("DataConsumerV3", [
+    ORACLEADDRESS,
+  ]);
+  await dataFeed.waitForDeployment();
+
   const stablecoin = await hre.ethers.deployContract("Stablecoin", [
-    oracleAddress,
+    dataFeed.target,
     10,
   ]);
 
-  await lock.waitForDeployment();
+  await stablecoin.waitForDeployment();
   console.log("Contract deployed at :", stablecoin.target);
+  await stablecoin.deploymentTransaction().wait(6);
+  await verify(stablecoin.target, [dataFeed.target, 10]);
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;

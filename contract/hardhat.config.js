@@ -3,9 +3,9 @@ require("dotenv").config();
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: "0.8.18",
-  paths: {
-    artifacts: "../app/src/artifacts",
-  },
+  // paths: {
+  //   artifacts: "../app/src/artifacts",
+  // },
 
   settings: {
     optimizer: {
@@ -37,7 +37,7 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      polygonMumbai: process.env.MUMBAI_API_KEY,
+      sepolia: process.env.ETHERSCAN_API,
     },
   },
 };

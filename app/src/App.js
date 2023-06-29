@@ -5,7 +5,7 @@ import { ethers } from "ethers";
 import payment from "./artifacts/contracts/Stable_coin.sol/Stablecoin.json";
 
 // Constants
-const StableCoin = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const StableCoin = "0xaC783164B16b8e4DC8D88d8753e3FB2D1233f42C";
 
 function App() {
   const [currentAccount, setCurrentAccount] = useState("");
@@ -219,8 +219,8 @@ function App() {
         <div className="header-container">
           <header>
             <div className="left">
-              <p className="title">🐱‍👤 Payment Contract</p>
-              <p className="subtitle">Make Payment with ERC20 token</p>
+              <p className="title">🐱‍👤 Decentralized StableCoin </p>
+              <p className="subtitle">Deposit ETH and mint nUSD</p>
             </div>
           </header>
         </div>

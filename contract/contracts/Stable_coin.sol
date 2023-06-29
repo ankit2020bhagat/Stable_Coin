@@ -1,34 +1,55 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.18;
 
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./PriceFeed.sol";
 
+/**
+ * @title Stablecoin
+ * @dev A stablecoin contract that allows users to deposit ETH and receive nUSD tokens.
+ */
 contract Stablecoin is ERC20{
 
     using SafeMath for uint256;
+
+    // Error messages
     error MustBeGreaterThanZero();
     error TokenBalanceShouldBeDouble();
     error TrasanctionFailed();
-     
+    
+        // Events
     event Deposit(address indexed from,uint indexed Colletal,uint indexed  token);
     event Redeem(address  indexed to, uint indexed ethamount,uint nusdAmount);
 
 
-    
-    address private oracleAddress; // Chainlink Oracle address
+    // Chainlink price feed contract
+    DataConsumerV3 immutable dataFeed;
+
+     // Deposit fee percentage
     uint8 public immutable depositFeePercentage;
-    mapping(address => uint256) private ethBalances; // User ETH balances
+
+    
+   // User balances
+    mapping(address => uint256) private colleteralDeposit; // User ETH balances
     mapping(address => uint256) private nusdBalances; // User nUSD balances
     
-    constructor(address _oracleAddress, uint8 _depositFeePercentage) ERC20("nUSD", "nUSD") {
-        oracleAddress = _oracleAddress;
+    /**
+     * @dev Initializes the Stablecoin contract.
+     * @param _oracleDataFeedAddress The address of the Chainlink Oracle contract.
+     * @param _depositFeePercentage The deposit fee percentage.
+     */
+    constructor(address _oracleDataFeedAddress, uint8 _depositFeePercentage) ERC20("nUSD", "nUSD") {
+        dataFeed = DataConsumerV3(_oracleDataFeedAddress);
         depositFeePercentage = _depositFeePercentage;
         
     }
     
-    // Deposit ETH and receive nUSD
+    /**
+     * @dev Deposit ETH and receive nUSD tokens.
+     */
     function deposit() external payable {
         //require(msg.value > 0, "ETH amount must be greater than 0");
          if(msg.value <= 0){
@@ -45,13 +66,16 @@ contract Stablecoin is ERC20{
         nusdAmount -= depositFee;
         
         
-        ethBalances[msg.sender] += colletalValue;
+        colleteralDeposit[msg.sender] += msg.value;
         nusdBalances[msg.sender] += nusdAmount;
         _mint(msg.sender, nusdAmount);
         emit Deposit( msg.sender,msg.value,nusdAmount);
     }
     
-    // Redeem nUSD for ETH
+    /**
+     * @dev Redeem nUSD tokens for ETH.
+     * @param nusdAmount The amount of nUSD tokens to redeem.
+     */
     function redeem(uint256 nusdAmount) external {
        
         if(nusdAmount<=0){
@@ -65,7 +89,7 @@ contract Stablecoin is ERC20{
         
         nusdBalances[msg.sender] -= nusdAmount;
         _burn(msg.sender, nusdAmount);
-        
+        colleteralDeposit[msg.sender]-=ethAmount;
         (bool success,) = msg.sender.call{value:ethAmount}("");
         if(!success){
             revert TrasanctionFailed();
@@ -75,15 +99,16 @@ contract Stablecoin is ERC20{
     
     // Get the current ETH price from the Chainlink Oracle
     function getEthPrice() public view returns (uint256) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(oracleAddress);
-        (, int256 price, , ,) = priceFeed.latestRoundData();
+       
+        int price = dataFeed.getLatestData();
         require(price > 0, "Invalid ETH price");
-        return uint256(price)/1e8;
+        return uint256(price);
+       
     }
     
     // Get user ETH balance
     function getEthBalance(address user) external view returns (uint256) {
-        return ethBalances[user];
+        return colleteralDeposit[user];
     }
     
     // Get user nUSD balance

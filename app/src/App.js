@@ -3,15 +3,16 @@ import React from "react";
 import "./styles/App.css";
 import { ethers } from "ethers";
 import payment from "./artifacts/contracts/Stable_coin.sol/Stablecoin.json";
+import { CONTRACT_ADDRESS } from "./constant/address";
 
 // Constants
-const StableCoin = "0xaC783164B16b8e4DC8D88d8753e3FB2D1233f42C";
 
 function App() {
   const [currentAccount, setCurrentAccount] = useState("");
 
   const [amount, setAmount] = useState("");
   const [withDrawlAmount, setwithDrawlAmount] = useState("");
+  const [ethPerUsd, setEthPerUsd] = useState("");
 
   const connectWallet = async () => {
     try {
@@ -63,7 +64,7 @@ function App() {
         const signer = provider.getSigner();
 
         const stableCoinContracts = new ethers.Contract(
-          StableCoin,
+          CONTRACT_ADDRESS,
           payment.abi,
           signer
         );
@@ -86,7 +87,7 @@ function App() {
         const signer = provider.getSigner();
 
         const stableCoinContracts = new ethers.Contract(
-          StableCoin,
+          CONTRACT_ADDRESS,
           payment.abi,
           signer
         );
@@ -106,7 +107,7 @@ function App() {
         const signer = provider.getSigner();
 
         const stableCoinContracts = new ethers.Contract(
-          StableCoin,
+          CONTRACT_ADDRESS,
           payment.abi,
           signer
         );
@@ -128,7 +129,7 @@ function App() {
         const signer = provider.getSigner();
 
         const stableCoinContracts = new ethers.Contract(
-          StableCoin,
+          CONTRACT_ADDRESS,
           payment.abi,
           signer
         );
@@ -140,6 +141,27 @@ function App() {
           currentAccount
         );
         console.log("nUSD Balance of current account ", nUSDBalance.toString());
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const getethprice = async () => {
+    try {
+      const { ethereum } = window;
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+
+        const stableCoinContracts = new ethers.Contract(
+          CONTRACT_ADDRESS,
+          payment.abi,
+          signer
+        );
+
+        const price = await stableCoinContracts.getEthPrice();
+        setEthPerUsd(price.toString());
+        totalSupply();
       }
     } catch (error) {
       console.log(error);
@@ -222,7 +244,14 @@ function App() {
               <p className="title">🐱‍👤 Decentralized StableCoin </p>
               <p className="subtitle">Deposit ETH and mint nUSD</p>
             </div>
+            <button
+              onClick={getethprice}
+              className="cta-button connect-wallet-button"
+            >
+              ETH/USD
+            </button>
           </header>
+          <h2>ETH/USG {ethPerUsd}</h2>
         </div>
         {!currentAccount && renderNotConnectedContainer()}
         {/* Render the input form if an account is connected */}

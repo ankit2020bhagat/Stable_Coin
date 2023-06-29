@@ -20,7 +20,3 @@ redeem(uint256 nusdAmount): Allows users to redeem their nUSD tokens for ETH. Th
 getEthPrice(): Retrieves the current ETH price in USD from the Chainlink oracle.
 getEthBalance(address user): Retrieves the ETH balance of a specific user.
 getNusdBalance(address user): Retrieves the nUSD token balance of a specific user.
-Customization
-The Stablecoin contract allows customization through the following parameter:
-
-depositFeePercentage: The deposit fee percentage, which is applied to the converted nUSD amount during deposits. This percentage is set during contract deployment.

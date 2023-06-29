@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.18;
+pragma solidity 0.8.18;
 
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./PriceFeed.sol";
 
 /**
  * @title Stablecoin
  * @dev A stablecoin contract that allows users to deposit ETH and receive nUSD tokens.
  */
-contract Stablecoin is ERC20{
+contract Stablecoin is ReentrancyGuard,ERC20{
 
     using SafeMath for uint256;
 
@@ -29,7 +30,7 @@ contract Stablecoin is ERC20{
     DataConsumerV3 immutable dataFeed;
 
      // Deposit fee percentage
-    uint8 public immutable depositFeePercentage;
+   
 
     
    // User balances
@@ -39,11 +40,11 @@ contract Stablecoin is ERC20{
     /**
      * @dev Initializes the Stablecoin contract.
      * @param _oracleDataFeedAddress The address of the Chainlink Oracle contract.
-     * @param _depositFeePercentage The deposit fee percentage.
+     *
      */
-    constructor(address _oracleDataFeedAddress, uint8 _depositFeePercentage) ERC20("nUSD", "nUSD") {
+    constructor(address _oracleDataFeedAddress) ERC20("nUSD", "nUSD") {
         dataFeed = DataConsumerV3(_oracleDataFeedAddress);
-        depositFeePercentage = _depositFeePercentage;
+        
         
     }
     
@@ -62,8 +63,7 @@ contract Stablecoin is ERC20{
         uint256 nusdAmount = colletalValue.div(2); // 50% conversion rate
       
         // Apply deposit fee
-        uint256 depositFee = (nusdAmount.mul(depositFeePercentage)).div(100);
-        nusdAmount -= depositFee;
+       
         
         
         colleteralDeposit[msg.sender] += msg.value;
@@ -76,7 +76,7 @@ contract Stablecoin is ERC20{
      * @dev Redeem nUSD tokens for ETH.
      * @param nusdAmount The amount of nUSD tokens to redeem.
      */
-    function redeem(uint256 nusdAmount) external {
+    function redeem(uint256 nusdAmount) external nonReentrant{
        
         if(nusdAmount<=0){
             revert MustBeGreaterThanZero();
@@ -98,11 +98,12 @@ contract Stablecoin is ERC20{
     }
     
     // Get the current ETH price from the Chainlink Oracle
-    function getEthPrice() public view returns (uint256) {
+    function getEthPrice() public view  returns (uint256) {
        
         int price = dataFeed.getLatestData();
         require(price > 0, "Invalid ETH price");
         return uint256(price);
+       
        
     }
     

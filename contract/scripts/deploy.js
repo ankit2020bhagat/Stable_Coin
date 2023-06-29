@@ -9,13 +9,12 @@ async function main() {
 
   const stablecoin = await hre.ethers.deployContract("Stablecoin", [
     dataFeed.target,
-    10,
   ]);
 
   await stablecoin.waitForDeployment();
   console.log("Contract deployed at :", stablecoin.target);
   await stablecoin.deploymentTransaction().wait(6);
-  await verify(stablecoin.target, [dataFeed.target, 10]);
+  await verify(stablecoin.target, [dataFeed.target]);
 }
 
 main().catch((error) => {

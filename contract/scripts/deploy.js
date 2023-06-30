@@ -13,7 +13,7 @@ async function main() {
 
   await stablecoin.waitForDeployment();
   console.log("Contract deployed at :", stablecoin.target);
-  await stablecoin.deploymentTransaction().wait(6);
+  await stablecoin.deploymentTransaction().wait(10);
   await verify(stablecoin.target, [dataFeed.target]);
 }
 

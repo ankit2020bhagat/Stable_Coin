@@ -2,17 +2,18 @@
 
 pragma solidity 0.8.18;
 
-
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./PriceFeed.sol";
 
 /**
  * @title Stablecoin
  * @dev A stablecoin contract that allows users to deposit ETH and receive nUSD tokens.
  */
-contract Stablecoin is ReentrancyGuard,ERC20{
+contract Stablecoin is ReentrancyGuard,Pausable,ERC20,AccessControl{
 
     using SafeMath for uint256;
 
@@ -20,6 +21,8 @@ contract Stablecoin is ReentrancyGuard,ERC20{
     error MustBeGreaterThanZero();
     error TokenBalanceShouldBeDouble();
     error TrasanctionFailed();
+    error AccessControlUnauthorizedAccount();
+    error InvalidETHprice();
     
         // Events
     event Deposit(address indexed from,uint indexed Colletal,uint indexed  token);
@@ -29,7 +32,7 @@ contract Stablecoin is ReentrancyGuard,ERC20{
     // Chainlink price feed contract
     DataConsumerV3 immutable dataFeed;
 
-     // Deposit fee percentage
+     bytes32 public constant PAUSABLE_ROLE = keccak256("PAUSABLE_ROLE");
    
 
     
@@ -44,14 +47,15 @@ contract Stablecoin is ReentrancyGuard,ERC20{
      */
     constructor(address _oracleDataFeedAddress) ERC20("nUSD", "nUSD") {
         dataFeed = DataConsumerV3(_oracleDataFeedAddress);
-        
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setRoleAdmin(PAUSABLE_ROLE, DEFAULT_ADMIN_ROLE);
         
     }
     
     /**
      * @dev Deposit ETH and receive nUSD tokens.
      */
-    function deposit() external payable {
+    function deposit() external payable whenNotPaused{
         //require(msg.value > 0, "ETH amount must be greater than 0");
          if(msg.value <= 0){
              revert MustBeGreaterThanZero(); 
@@ -60,12 +64,7 @@ contract Stablecoin is ReentrancyGuard,ERC20{
         uint256 colletalValue= (ETHperUSD.mul(msg.value)).div(1e18);
       
         
-        uint256 nusdAmount = colletalValue.div(2); // 50% conversion rate
-      
-        // Apply deposit fee
-       
-        
-        
+        uint256 nusdAmount = colletalValue.div(2); // 50% conversion rate 
         colleteralDeposit[msg.sender] += msg.value;
         nusdBalances[msg.sender] += nusdAmount;
         _mint(msg.sender, nusdAmount);
@@ -76,7 +75,7 @@ contract Stablecoin is ReentrancyGuard,ERC20{
      * @dev Redeem nUSD tokens for ETH.
      * @param nusdAmount The amount of nUSD tokens to redeem.
      */
-    function redeem(uint256 nusdAmount) external nonReentrant{
+    function redeem(uint256 nusdAmount) external nonReentrant whenNotPaused{
        
         if(nusdAmount<=0){
             revert MustBeGreaterThanZero();
@@ -101,10 +100,25 @@ contract Stablecoin is ReentrancyGuard,ERC20{
     function getEthPrice() public view  returns (uint256) {
        
         int price = dataFeed.getLatestData();
-        require(price > 0, "Invalid ETH price");
+        
+        if(price<=0){
+        revert InvalidETHprice(); 
+        }
         return uint256(price);
-       
-       
+        
+    }
+
+   
+    /**
+     *@dev Checks if an account has the specified role or the default admin role.
+     *@param role The role to check.
+     *@param account The account address to check.
+     *@dev Throws an exception if the account doesn't have the role or the default admin role. 
+    */
+     function _checkRole(bytes32 role, address account) internal override  view virtual {
+        if (!(hasRole(role, account) || hasRole(DEFAULT_ADMIN_ROLE,account))){
+            revert AccessControlUnauthorizedAccount();
+        }
     }
     
     // Get user ETH balance
@@ -115,5 +129,19 @@ contract Stablecoin is ReentrancyGuard,ERC20{
     // Get user nUSD balance
     function getNusdBalance(address user) external view returns (uint256) {
         return nusdBalances[user];
+    }
+
+/// @dev Pauses the contract.
+/// @dev Only callable by an account with the PAUSABLE_ROLE.
+/// @dev Throws an exception if the contract is already paused.
+    function pause() external onlyRole(PAUSABLE_ROLE) whenNotPaused {
+        _pause();
+    }
+
+/// @dev Unpauses the contract.
+/// @dev Only callable by an account with the PAUSABLE_ROLE.
+/// @dev Throws an exception if the contract is not currently paused.
+    function unpause() external onlyRole(PAUSABLE_ROLE) whenPaused {
+        _unpause();
     }
 }

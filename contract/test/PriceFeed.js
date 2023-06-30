@@ -16,10 +16,7 @@ describe.only("DataConsumerV3", function () {
   // Test the getLatestData function
   describe("getLatestData", function () {
     it("should return the latest data from the aggregator", async function () {
-      const latestAnswer = 100000000; // Example value for the latest answer
-
-      // Mock the latestRoundData function of the aggregator contract
-      //const [roundId, answer, startedAt, timeStamp, answeredInRound]
+      const latestAnswer = 100000000; 
       const txn = await aggregatorMock.latestRoundData();
       await txn.wait();
       // Get the latest data
